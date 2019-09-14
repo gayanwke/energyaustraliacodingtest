@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>EnergyAustralia Coding Test</h2>
+
+<div id="dataDiv">
+	<button type="button" onclick="loadData()">Load Festival Data</button>
+</div>
+
+<script>
+
+function loadData() {
+  var xhttp = new XMLHttpRequest();
+  var apiURL = "festivals.json";
+  //Tried using API url (http://eacodingtest.digital.energyaustralia.com.au/api/v1/festivals) but because of CORS issue, I had to use local file for demo purpose.
+  //var apiURL = "http://eacodingtest.digital.energyaustralia.com.au/api/v1/festivals";
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      arrangeDataForDisplay(JSON.parse(this.responseText));
+    }
+  };
+  xhttp.open("GET", apiURL, true);
+  xhttp.send();
+}
+
+function arrangeDataForDisplay(festivals) {
+	var bandsWithTheirFestivals = associateBandWithFestivals(festivals);
+	//associate record label with bands, and bands here are already associated with their festivals from above method call
+	var recordLabels = [];
+	for (var i in festivals) {
+		for (var j in festivals[i].bands) {
+			var label = festivals[i].bands[j].recordLabel ? festivals[i].bands[j].recordLabel : 'No Record Label';
+			if(recordLabels[label]) {
+				recordLabels[label].bands.push({
+					name: festivals[i].bands[j].name,
+					festivals: bandsWithTheirFestivals[festivals[i].bands[j].name]
+				});
+				recordLabels[label].bands.sort(function(a,b) {
+					return a.name > b.name ? 1 : b.name > a.name ? -1 : 0;
+				});
+			} else {
+				recordLabels[label] = {
+					bands: [{
+						name: festivals[i].bands[j].name,
+						festivals: bandsWithTheirFestivals[festivals[i].bands[j].name]
+					}]
+				};
+			}
+		}
+	}
+	//sort record labels
+	for (var i in recordLabels) {
+		recordLabels.push({
+			name: i,
+			bands: recordLabels[i].bands
+		});
+		delete recordLabels[i];
+	}
+	recordLabels.sort(function(a,b) {
+		return a.name > b.name ? 1 : b.name > a.name ? -1 : 0;
+	});
+	displayData(recordLabels);
+}
+
+function associateBandWithFestivals(festivals) {
+	//associate each band with festivals they have attended
+	var bandsWithTheirFestivals = [];
+	for(var i in festivals) {
+		var bands = festivals[i].bands;
+		for(var j in bands) {
+			var band = bands[j];
+			if (bandsWithTheirFestivals[band.name]) {
+				bandsWithTheirFestivals[band.name].push(festivals[i].name);
+				bandsWithTheirFestivals[band.name].sort(function(a,b) {
+					return a > b ? 1 : b > a ? -1 : 0;
+				});
+			} else {
+				bandsWithTheirFestivals[band.name] = festivals[i].name ? [festivals[i].name] : [];
+			}
+		}	
+	}
+	return bandsWithTheirFestivals;
+}
+
+function displayData(recordLabels) {
+	//create an html string var
+	var html = '<ul>'
+	for (var i in recordLabels) {
+		html += '<li>' + recordLabels[i].name + '<ul>'
+		for (var j in recordLabels[i].bands) {
+			html += '<li>' + recordLabels[i].bands[j].name + '<ul>'
+			for (var k in recordLabels[i].bands[j].festivals) {
+				html += '<li>' + recordLabels[i].bands[j].festivals[k] + '</li>';
+			}
+			html += '</ul></li>';
+		}
+		html += '</ul></li>';
+	}
+	html += '</ul>';
+	document.getElementById('dataDiv').innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
